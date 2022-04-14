@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+
+# Change these as you see fit!
+BACKUP_DEST="/hdd/Backups/homedir"
+BACKUP_DIRS=(
+	"~/Documents"
+	"~/Pictures"
+	"~/Videos"
+)
+EXCLDE_DIRS=(
+	"~/Documents/jdks"
+)
+
+# No touchy!
+DATE="$(date +%F_%H-%M-%S)"
+NAME="$(basename "$0")-${DATE}"
+
+OPTS_COMM="$1"
+
+CONF_PATH="${BACKUP_DEST}/.conf"
+CONF_CONT=($(cat ${CONF_PATH}))
+
+CONF_MODE=${CONF_CONT[0]}
+CONF_COMP=${CONF_CONT[1]}
+
+
+info () {
+	echo "[B] $1"
+}
+
+warn () {
+	echo "[W] $1"
+}
+
+getv () {
+	echo "[?] $1"
+	read var
+}
+
+err () {
+	echo "[E] $1"
+}
+
+dfmt () {
+	if [[ ! "$BACKUP_DEST" == */ ]]; then
+		BACKUP_DEST="$BACKUP_DEST/"
+	fi
+	for (( i=0; i<${#BACKUP_DIRS[@]}; i++ )); do
+		if [[ ! "${BACKUP_DIRS[$i]}" == */ ]]; then
+			BACKUP_DIRS[$i]="${BACKUP_DIRS[$i]}/"
+		fi
+	done
+	for (( i=0; i<${#EXCLDE_DIRS[@]}; i++ )); do
+		if [[ ! "${EXCLDE_DIRS[$i]}" == */ ]]; then
+			EXCLDE_DIRS[$i]="${EXCLDE_DIRS[$i]}/"
+		fi
+	done
+}
+
+init () {
+	MISSING_DEPS=()
+	if [[ ! -d ${BACKUP_DEST} ]]; then
+		info "Backup destination not found, creating..."
+		mkdir -p ${BACKUP_DEST}
+	fi
+	if [[ ! -v rsync ]]; then
+		MISSING_DEPS+=("rsync")
+	fi
+	if [[ ! -v tar ]]; then
+		MISSING_DEPS+=("tar")
+	fi
+}
+
+debug () {
+	echo DEST=$BACKUP_DEST
+	echo NAME=$NAME
+	echo CONF_PATH=$CONF_PATH
+	echo CONF_CONT=${CONF_CONT[@]}
+	echo CONF_MODE=$CONF_MODE
+	echo CONF_COMP=$CONF_COMP
+
+	for dir in ${BACKUP_DIRS[@]}; do
+		for exd in ${EXCLDE_DIRS[@]}; do
+			if [[ "$exd" == "$dir"* ]]; then
+				echo "backing up $dir, but ignoring subdir ${exd#${dir}} !"
+			else
+				echo "backing up $dir !"
+			fi
+		done
+	done
+
+	for dir in ${EXCLDE_DIRS[@]}; do
+		echo "not backing up $dir !"
+	done
+
+}
+
+main () {
+	if [[ ${OPTS_COMM} = "dump" ]]; then
+		dfmt
+		debug
+		exit 2
+	else
+		echo "Not debugging"
+		exit 0
+	fi
+}
+
+main
